@@ -1,7 +1,7 @@
 {
   "name": "@teamapdan/weirdchart",
   "author": "rkskekzzz",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "Styled Stacked Bar Chart for Dynamic Data",
   "bugs": {
     "url": "https://github.com/teamApdan/StackedBarChart/issues"
