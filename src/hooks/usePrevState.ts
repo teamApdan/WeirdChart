@@ -1,10 +1,12 @@
 import { useEffect, useRef } from 'react';
 
-const usePrevState = <T = any>(state: T) => {
-  const ref = useRef(state);
+const usePrevState = <T extends any[]>(state: T): T => {
+  const ref = useRef<T>(state);
+
   useEffect(() => {
     ref.current = state;
   }, [state]);
+
   return ref.current;
 };
 

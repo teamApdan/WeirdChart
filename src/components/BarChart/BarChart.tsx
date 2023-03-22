@@ -1,192 +1,145 @@
 import React, { useState, useEffect } from 'react';
 import Canvas from '../Canvas';
 import { usePrevState } from '../../hooks';
+import { defaultBarConfig } from './BarChart.static';
+import { Dataset, CumulativeDataset, Position, Bar, radii, Option, BarConfig } from './BarChart.types';
 import './BarChart.css';
-
-export type Position = 'FIRST' | 'MIDDLE' | 'LAST' | 'NONE';
-export type radii = number | [number] | [number, number] | [number, number, number] | [number, number, number, number];
-export type Dataset = {
-  label: string;
-  value: number;
-  color?: string;
-};
-export type CumulativeDataset = Dataset & {
-  cumulativeSum: number;
-  state: Position;
-};
-
-export type Bar = {
-  color: string;
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  radii: radii;
-};
-
-export type Option = {
-  offsetX?: number;
-  offsetY?: number;
-  barHeight?: number;
-  barMaxWidth?: number;
-  barRadius?: number;
-  widthRatio?: number;
-  animationSpeed?: number;
-  frameCount?: number;
-};
-
-// unwrap optional type
-export type RequiredOption = {
-  [K in keyof Option]-?: Option[K];
-};
+import { Color } from '../../utils/color';
 
 export interface BarChartProps {
   dataset: Dataset[];
+  colors?: string[];
   option?: Option;
 }
 
-function easeInOut(t: number) {
-  return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
-}
-
-function toCumulativeDataset(dataset: Dataset[]): CumulativeDataset[] {
-  const totalValue = dataset.reduce((acc, obj) => acc + obj.value, 0);
-
-  let sum = 0;
-  let state: Position | 'NONE';
-  return dataset.map((obj, index) => {
-    if (sum === 0 && obj.value !== 0) {
-      state = 'FIRST';
-    } else if (index > 0 && obj.value === 0) {
-      state = 'NONE';
-    } else if (sum + obj.value === totalValue) {
-      state = 'LAST';
+function makeCumulativeDataset(dataset: Dataset[]): CumulativeDataset[] {
+  const totalValue = dataset.reduce((acc, data) => acc + data.value, 0);
+  let cumulativeSum = 0;
+  let position: Position;
+  return dataset.map((data) => {
+    if (cumulativeSum === 0 && data.value !== 0) {
+      position = 'FIRST';
+    } else if (data.value === 0) {
+      position = 'NONE';
+    } else if (cumulativeSum + data.value === totalValue) {
+      position = 'LAST';
     } else {
-      state = 'MIDDLE';
+      position = 'MIDDLE';
     }
-    sum += obj.value;
-    return { ...obj, cumulativeSum: sum, state: state };
+    cumulativeSum += data.value;
+    return { ...data, cumulativeSum, position };
   });
 }
 
-function makeBarOffsetX(position: Position, option: RequiredOption) {
+function makeBarOffsetX(position: Position) {
   if (position === 'FIRST') return 0;
-  return option.barRadius;
+  return 1;
 }
 
-function makeBarRadius(position: Position, option: RequiredOption): radii {
-  if (position === 'FIRST') return [option.barRadius, 0, 0, option.barRadius];
-  if (position === 'LAST') return [0, option.barRadius, option.barRadius, 0];
-  return [0, 0, 0, 0];
+function makeBarRadius(position: Position, config: BarConfig, nonePositionByLast: boolean): radii {
+  switch (position) {
+    case 'MIDDLE':
+    case 'FIRST':
+      return [config.barRadius, 0, 0, config.barRadius];
+    case 'LAST':
+      return [config.barRadius, config.barRadius, config.barRadius, config.barRadius];
+    case 'NONE':
+      if (nonePositionByLast) return [config.barRadius, config.barRadius, config.barRadius, config.barRadius];
+      return [config.barRadius, 0, 0, config.barRadius];
+    default:
+      return [config.barRadius, 0, 0, config.barRadius];
+  }
 }
 
 function makeBarWidth(
-  startValue: number,
-  destinationValue: number,
-  totalValue: number,
+  prevValue: number,
   prevTotalValue: number,
+  destinationValue: number,
+  destinationTotalValue: number,
   position: Position,
-  option: RequiredOption
+  barConfig: BarConfig
 ) {
-  function additionalWidth(position: Position, option: RequiredOption) {
-    if (position === 'MIDDLE' || position === 'LAST') return -option.barRadius;
-    return 0;
+  function additionalWidth(position: Position, barConfig: BarConfig) {
+    if (position === 'FIRST') return 0;
+    return -barConfig.barRadius - 1;
   }
-  const animationWidth = (startWidth: number, destinationWidth: number, frameCount: number) => {
-    if (frameCount * option.animationSpeed > 60) return destinationWidth;
-    return startWidth + (destinationWidth - startWidth) * easeInOut((frameCount * option.animationSpeed) / 60);
-  };
-  if (position === 'LAST') {
-    return animationWidth(startValue !== destinationValue ? option.barMaxWidth : option.barRadius, option.barMaxWidth, option.frameCount);
-  }
-  if (startValue === destinationValue) {
-    startValue = option.barRadius;
+  function animationWidth(startWidth: number, destinationWidth: number, frameCount: number) {
+    if (frameCount * barConfig.animationSpeed >= 60) {
+      return destinationWidth;
+    }
+    return startWidth + ((destinationWidth - startWidth) * (frameCount * barConfig.animationSpeed)) / 60;
   }
   const result =
     animationWidth(
-      option.barMaxWidth * (startValue / prevTotalValue),
-      option.barMaxWidth * (destinationValue / totalValue),
-      option.frameCount
-    ) + additionalWidth(position, option);
-  return result;
+      barConfig.barMaxWidth * (prevValue / prevTotalValue),
+      barConfig.barMaxWidth * (destinationValue / destinationTotalValue),
+      barConfig.frameCount
+    ) + additionalWidth(position, barConfig);
+  return result < 0 ? 0 : result;
 }
 
-function makeBar(
-  ctx: CanvasRenderingContext2D,
-  cumulativeDataset: CumulativeDataset[],
-  prevDataset: CumulativeDataset[],
-  option: RequiredOption
-): Bar[] {
-  const totalValue = cumulativeDataset.reduce((acc, obj) => acc + obj.value, 0);
-  const prevTotalValue = prevDataset.reduce((acc, obj) => acc + obj.value, 0);
+function makeBar(cumulativeDataset: CumulativeDataset[], prevDataset: CumulativeDataset[], barConfig: BarConfig): Bar[] {
+  const destinationTotalValue = cumulativeDataset.reduce((acc, obj) => acc + obj.value, 0);
+  const prevTotalValue = prevDataset ? prevDataset.reduce((acc, obj) => acc + obj.value, 0) : 0;
 
-  option.barMaxWidth = ctx.canvas.width - option.offsetX;
-  option.barRadius = option.barHeight / 2;
-
-  return cumulativeDataset
-    .filter((obj) => obj.state !== 'NONE')
-    .map((obj, index) => {
-      return {
-        color: obj.color || '#000000',
-        x: makeBarOffsetX(obj.state, option),
-        y: option.offsetY || 10,
-        width: makeBarWidth(prevDataset[index].cumulativeSum, obj.cumulativeSum, totalValue, prevTotalValue, obj.state, option),
-        height: option.barHeight,
-        radii: makeBarRadius(obj.state, option),
-      };
-    });
-}
-
-function drawBars(ctx: CanvasRenderingContext2D, bars: Bar[]) {
-  bars.reverse().forEach((bar) => {
-    drawBar(ctx, bar);
+  function checkPositionLastIndex(cumulativeDataset: CumulativeDataset[]) {
+    return cumulativeDataset.findIndex((obj) => obj.position === 'LAST');
+  }
+  return cumulativeDataset.map((cumulativeData, index) => {
+    const prevValue = prevDataset[index].cumulativeSum;
+    const destinationValue = cumulativeData.cumulativeSum;
+    return {
+      color: cumulativeData.color ?? 'black',
+      x: makeBarOffsetX(cumulativeData.position),
+      y: barConfig.offsetY,
+      width: makeBarWidth(prevValue, prevTotalValue, destinationValue, destinationTotalValue, cumulativeData.position, barConfig),
+      height: barConfig.barHeight,
+      radii: makeBarRadius(cumulativeData.position, barConfig, index > checkPositionLastIndex(cumulativeDataset)),
+    };
   });
 }
 
-function drawBar(ctx: CanvasRenderingContext2D, bar: Bar) {
-  ctx.fillStyle = bar.color;
-  ctx.beginPath();
-  bar.width = Math.floor(bar.width);
-  if (bar.width % 2 === 1) bar.width -= 1;
-  ctx.roundRect(bar.x, bar.y, bar.width, bar.height, bar.radii);
-  ctx.fill();
+function drawBars(ctx: CanvasRenderingContext2D, bars: Bar[]) {
+  ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+  bars.reverse().forEach((bar) => {
+    ctx.fillStyle = bar.color;
+    ctx.beginPath();
+    ctx.roundRect(bar.x, bar.y, bar.width, bar.height, bar.radii);
+    ctx.fill();
+  });
 }
 
-const BarChart = ({ dataset, option }: BarChartProps) => {
-  const cumulativeDataset = toCumulativeDataset(dataset);
-  const prevDataset = usePrevState<CumulativeDataset[]>(cumulativeDataset);
-
-  const defaultOption: RequiredOption = {
-    offsetX: 10,
-    offsetY: 10,
-    barHeight: 20,
-    barMaxWidth: 100,
-    barRadius: 20,
-    widthRatio: 1,
-    animationSpeed: 1,
-    frameCount: 0,
+function setConfig(ctx: CanvasRenderingContext2D, frameCount: number, defaultBarConfig: BarConfig, option?: Option) {
+  const config = { ...defaultBarConfig, frameCount, ...option };
+  return {
+    ...config,
+    barMaxWidth: ctx.canvas.width - config.offsetX,
+    barRadius: config.barHeight / 2,
   };
+}
+
+const BarChart = ({ dataset, colors, option }: BarChartProps) => {
+  const cumulativeDataset = makeCumulativeDataset(dataset);
+  const prevDataset = usePrevState<CumulativeDataset[]>(cumulativeDataset);
+  const barColors = Color(colors);
 
   function draw(
     ctx: CanvasRenderingContext2D,
     frameCount: number,
     cumulativeDataset: CumulativeDataset[],
-    prevDataset: CumulativeDataset[]
+    prevDataset: CumulativeDataset[],
+    option?: Option
   ) {
-    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-    const bars = makeBar(ctx, cumulativeDataset, prevDataset, { ...defaultOption, frameCount, ...option });
+    const config = setConfig(ctx, frameCount, defaultBarConfig, option);
+    const bars = makeBar(cumulativeDataset, prevDataset, config);
     drawBars(ctx, bars);
   }
-
-  useEffect(() => {
-    console.log(prevDataset);
-  }, []);
 
   return (
     <div className='barchart' style={{ position: 'relative' }}>
       <Canvas
         draw={(ctx, frameCount) => {
-          draw(ctx, frameCount, cumulativeDataset, prevDataset);
+          draw(ctx, frameCount, cumulativeDataset, prevDataset, option);
         }}
         style={{ width: '100%', height: '100%', position: 'absolute' }}
       />

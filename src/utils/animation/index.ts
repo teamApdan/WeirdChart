@@ -1,0 +1,1 @@
+export { easeInOut } from './easeInOut';
