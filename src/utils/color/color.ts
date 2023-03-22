@@ -1,75 +1,65 @@
-// export class Color {
-//   colors: string[] = defaultColors.pastel;
+export type Theme = 'pastel' | 'dark' | 'light' | 'default';
+export type DefaultColors = {
+  [key in Theme]: string[];
+};
 
-//   constructor(customColors?: string[]) {
-//     if (customColors) {
-//       if (this.isValidColors(customColors)) {
-//         this.colors = customColors;
-//       } else {
-//         this.err('Invalid color is included in customColors');
-//       }
-//     }
-//   }
+export class Color {
+  defaultTheme: Theme = 'pastel';
+  colors: string[] = defaultColors.pastel;
 
-//   err(message: string) {
-//     console.error(message);
-//   }
+  // constructor(customColors?: string[]) {
+  //   if (customColors) {
+  //     if (this.isValidColors(customColors)) {
+  //       this.colors = customColors;
+  //     } else {
+  //       this.err('Invalid color is included in customColors');
+  //     }
+  //   }
+  // }
 
-//   isValidColors(colors: string[]) {
-//     return colors.every((color) => this.isValidColor(color));
-//   }
+  constructor(colors?: string[] | Theme) {
+    if (colors) {
+      if (Array.isArray(colors)) {
+        if (this.isValidColors(colors)) {
+          this.colors = colors;
+        } else {
+          this.err('Invalid color is included in colors');
+          this.setColors();
+        }
+      } else {
+        this.setColors(colors);
+      }
+    }
+  }
 
-//   isValidColor(color: string) {
-//     const s = new Option().style;
-//     s.color = color;
-//     return s.color !== '';
-//   }
+  err(message: string) {
+    console.error(message);
+  }
 
-//   setColors(theme: keyof typeof defaultColors) {
-//     this.colors = defaultColors[theme];
-//   }
+  isValidColors(colors: string[]) {
+    return colors.every((color) => this.isValidColor(color));
+  }
 
-//   getColors() {
-//     return this.colors;
-//   }
-
-//   getColor(index: number) {
-//     return this.colors[index % this.colors.length];
-//   }
-// }
-
-export function Color(customColors = defaultColors.pastel) {
-  function isValidColor(color: string) {
+  isValidColor(color: string) {
     const s = new Option().style;
     s.color = color;
     return s.color !== '';
   }
 
-  function isValidColors(colors: string[]) {
-    return colors.every(isValidColor);
+  setColors(theme: keyof typeof defaultColors = this.defaultTheme) {
+    this.colors = defaultColors[theme];
   }
 
-  function setColors(theme: keyof typeof defaultColors) {
-    customColors = defaultColors[theme];
+  getColors() {
+    return this.colors;
   }
 
-  function getColors() {
-    return customColors;
+  getColor(index: number) {
+    return this.colors[index % this.colors.length];
   }
-
-  function getColor(index: number) {
-    return customColors[index % customColors.length];
-  }
-
-  if (customColors && !isValidColors(customColors)) {
-    console.error('Invalid color is included in customColors');
-    customColors = defaultColors.pastel;
-  }
-
-  return { setColors, getColors, getColor };
 }
 
-const defaultColors = {
+const defaultColors: DefaultColors = {
   pastel: [
     '#c8a2c8',
     '#f7cac9',

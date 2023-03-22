@@ -1,2 +1,4 @@
-export { default as BarChart } from './BarChart';
-export { default as Canvas } from './Canvas';
+import BarChart from './BarChart';
+import Canvas from './Canvas';
+
+export { BarChart, Canvas };

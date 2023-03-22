@@ -1,53 +1,75 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import Canvas from '../Canvas';
-import { usePrevState } from '../../hooks';
+import { useBarChartDataset } from '../../hooks';
+import { Color, Theme } from '../../utils/color';
+import { positiveOrZero } from '../../utils/calculation';
 import { defaultBarConfig } from './BarChart.static';
 import { Dataset, CumulativeDataset, Position, Bar, radii, Option, BarConfig } from './BarChart.types';
 import './BarChart.css';
-import { Color } from '../../utils/color';
 
-export interface BarChartProps {
+export type BarChartProps = {
   dataset: Dataset[];
-  colors?: string[];
+  /**
+   * @description can be custom color array or theme
+   * @see Theme
+   * @default 'pastel'
+   */
+  colors?: string[] | Theme;
   option?: Option;
-}
+};
 
-function makeCumulativeDataset(dataset: Dataset[]): CumulativeDataset[] {
-  const totalValue = dataset.reduce((acc, data) => acc + data.value, 0);
-  let cumulativeSum = 0;
-  let position: Position;
-  return dataset.map((data) => {
-    if (cumulativeSum === 0 && data.value !== 0) {
-      position = 'FIRST';
-    } else if (data.value === 0) {
-      position = 'NONE';
-    } else if (cumulativeSum + data.value === totalValue) {
-      position = 'LAST';
-    } else {
-      position = 'MIDDLE';
+const BarChart = ({ dataset, colors, option }: BarChartProps) => {
+  const { isMount, cumulativeDataset, defaultDataset, prevDataset, mount } = useBarChartDataset(dataset);
+  const barColors = new Color(colors);
+
+  function draw(
+    ctx: CanvasRenderingContext2D,
+    frameCount: number,
+    cumulativeDataset: CumulativeDataset[],
+    defaultDataset: CumulativeDataset[],
+    prevDataset: CumulativeDataset[],
+    barColors: Color,
+    isMount: boolean,
+    mount: () => void,
+    option?: Option
+  ) {
+    const config = setConfig(ctx, frameCount, isMount, defaultBarConfig, option);
+    const bars = makeBars(cumulativeDataset, config.isStart ? prevDataset : defaultDataset, barColors, config);
+    drawBars(ctx, bars);
+    if (frameCount * config.animationSpeed >= 60) {
+      mount();
     }
-    cumulativeSum += data.value;
-    return { ...data, cumulativeSum, position };
-  });
-}
+  }
+
+  return (
+    <div className='barchart' style={{ position: 'relative' }}>
+      <Canvas
+        draw={(ctx, frameCount) => {
+          draw(ctx, frameCount, cumulativeDataset, defaultDataset, prevDataset, barColors, isMount, mount, option);
+        }}
+        style={{ width: '100%', height: '100%', position: 'absolute' }}
+      />
+    </div>
+  );
+};
+
+export default BarChart;
 
 function makeBarOffsetX(position: Position) {
-  if (position === 'FIRST') return 0;
-  return 1;
+  return position === 'FIRST' ? 0 : 1;
 }
 
-function makeBarRadius(position: Position, config: BarConfig, nonePositionByLast: boolean): radii {
+function makeBarRadius(position: Position, { barRadius }: BarConfig, nonePositionByLast: boolean): radii {
   switch (position) {
     case 'MIDDLE':
     case 'FIRST':
-      return [config.barRadius, 0, 0, config.barRadius];
+      return [barRadius, 0, 0, barRadius];
     case 'LAST':
-      return [config.barRadius, config.barRadius, config.barRadius, config.barRadius];
+      return [barRadius, barRadius, barRadius, barRadius];
     case 'NONE':
-      if (nonePositionByLast) return [config.barRadius, config.barRadius, config.barRadius, config.barRadius];
-      return [config.barRadius, 0, 0, config.barRadius];
+      return nonePositionByLast ? [barRadius, barRadius, barRadius, barRadius] : [barRadius, 0, 0, barRadius];
     default:
-      return [config.barRadius, 0, 0, config.barRadius];
+      return [barRadius, 0, 0, barRadius];
   }
 }
 
@@ -59,37 +81,28 @@ function makeBarWidth(
   position: Position,
   barConfig: BarConfig
 ) {
-  function additionalWidth(position: Position, barConfig: BarConfig) {
-    if (position === 'FIRST') return 0;
-    return -barConfig.barRadius - 1;
-  }
-  function animationWidth(startWidth: number, destinationWidth: number, frameCount: number) {
-    if (frameCount * barConfig.animationSpeed >= 60) {
-      return destinationWidth;
-    }
-    return startWidth + ((destinationWidth - startWidth) * (frameCount * barConfig.animationSpeed)) / 60;
-  }
-  const result =
-    animationWidth(
-      barConfig.barMaxWidth * (prevValue / prevTotalValue),
-      barConfig.barMaxWidth * (destinationValue / destinationTotalValue),
-      barConfig.frameCount
-    ) + additionalWidth(position, barConfig);
-  return result < 0 ? 0 : result;
+  const { isStart, startAnimation, barMaxWidth } = barConfig;
+  const startWidth = !isStart && startAnimation === 'fromZero' ? prevValue : (prevValue / prevTotalValue) * barMaxWidth;
+  const destinationWidth = (destinationValue / destinationTotalValue) * barMaxWidth;
+  const additionalWidth = position === 'FIRST' ? 0 : -1;
+
+  const animation = (startWidth: number, destinationWidth: number, { animationSpeed, frameCount, animationTimingFunction }: BarConfig) => {
+    return startWidth + (destinationWidth - startWidth) * animationTimingFunction((frameCount * animationSpeed) / 60);
+  };
+
+  return positiveOrZero(animation(startWidth, destinationWidth, barConfig) + additionalWidth);
 }
 
-function makeBar(cumulativeDataset: CumulativeDataset[], prevDataset: CumulativeDataset[], barConfig: BarConfig): Bar[] {
+function makeBars(cumulativeDataset: CumulativeDataset[], prevDataset: CumulativeDataset[], barColors: Color, barConfig: BarConfig): Bar[] {
   const destinationTotalValue = cumulativeDataset.reduce((acc, obj) => acc + obj.value, 0);
-  const prevTotalValue = prevDataset ? prevDataset.reduce((acc, obj) => acc + obj.value, 0) : 0;
+  const prevTotalValue = prevDataset.reduce((acc, obj) => acc + obj.value, 0);
+  const checkPositionLastIndex = (cumulativeDataset: CumulativeDataset[]) => cumulativeDataset.findIndex((obj) => obj.position === 'LAST');
 
-  function checkPositionLastIndex(cumulativeDataset: CumulativeDataset[]) {
-    return cumulativeDataset.findIndex((obj) => obj.position === 'LAST');
-  }
   return cumulativeDataset.map((cumulativeData, index) => {
     const prevValue = prevDataset[index].cumulativeSum;
     const destinationValue = cumulativeData.cumulativeSum;
     return {
-      color: cumulativeData.color ?? 'black',
+      color: cumulativeData.color ?? barColors.getColor(index),
       x: makeBarOffsetX(cumulativeData.position),
       y: barConfig.offsetY,
       width: makeBarWidth(prevValue, prevTotalValue, destinationValue, destinationTotalValue, cumulativeData.position, barConfig),
@@ -109,42 +122,18 @@ function drawBars(ctx: CanvasRenderingContext2D, bars: Bar[]) {
   });
 }
 
-function setConfig(ctx: CanvasRenderingContext2D, frameCount: number, defaultBarConfig: BarConfig, option?: Option) {
+function setConfig(
+  ctx: CanvasRenderingContext2D,
+  frameCount: number,
+  isStart: boolean,
+  defaultBarConfig: BarConfig,
+  option?: Option
+): BarConfig {
   const config = { ...defaultBarConfig, frameCount, ...option };
   return {
     ...config,
+    isStart,
     barMaxWidth: ctx.canvas.width - config.offsetX,
     barRadius: config.barHeight / 2,
   };
 }
-
-const BarChart = ({ dataset, colors, option }: BarChartProps) => {
-  const cumulativeDataset = makeCumulativeDataset(dataset);
-  const prevDataset = usePrevState<CumulativeDataset[]>(cumulativeDataset);
-  const barColors = Color(colors);
-
-  function draw(
-    ctx: CanvasRenderingContext2D,
-    frameCount: number,
-    cumulativeDataset: CumulativeDataset[],
-    prevDataset: CumulativeDataset[],
-    option?: Option
-  ) {
-    const config = setConfig(ctx, frameCount, defaultBarConfig, option);
-    const bars = makeBar(cumulativeDataset, prevDataset, config);
-    drawBars(ctx, bars);
-  }
-
-  return (
-    <div className='barchart' style={{ position: 'relative' }}>
-      <Canvas
-        draw={(ctx, frameCount) => {
-          draw(ctx, frameCount, cumulativeDataset, prevDataset, option);
-        }}
-        style={{ width: '100%', height: '100%', position: 'absolute' }}
-      />
-    </div>
-  );
-};
-
-export default BarChart;

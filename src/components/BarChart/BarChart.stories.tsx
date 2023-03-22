@@ -12,21 +12,23 @@ const Template: ComponentStory<typeof BarChart> = (args) => <BarChart {...args} 
 export const NormalSpeed = Template.bind({});
 NormalSpeed.args = {
   dataset: [
-    { label: 'A', value: 20, color: '#ff0000' },
-    { label: 'B', value: 20, color: '#00ff00' },
-    { label: 'C', value: 20, color: '#0000ff' },
+    { label: 'A', value: 20 },
+    { label: 'B', value: 20 },
+    { label: 'C', value: 20 },
     { label: 'D', value: 0 },
   ],
+  colors: 'light',
 };
 
 export const DoubleSpeed = Template.bind({});
 DoubleSpeed.args = {
   dataset: [
-    { label: 'A', value: 10, color: '#ff0000' },
-    { label: 'B', value: 10, color: '#00ff00' },
-    { label: 'B', value: 30, color: '#0000ff' },
+    { label: 'A', value: 10 },
+    { label: 'B', value: 10 },
+    { label: 'B', value: 30 },
     { label: 'C', value: 0 },
   ],
+  colors: 'dark',
   option: {
     animationSpeed: 2,
   },

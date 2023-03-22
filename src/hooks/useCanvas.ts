@@ -19,7 +19,7 @@ const useCanvas = (draw: (ctx: CanvasRenderingContext2D, frameCount: number) => 
     let animationFrameId: number;
 
     const render = () => {
-      frameCount++;
+      if (frameCount <= 1000) frameCount++;
       draw(context, frameCount);
       animationFrameId = window.requestAnimationFrame(render);
     };
