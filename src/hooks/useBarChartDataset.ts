@@ -5,11 +5,11 @@ import usePrevState from './usePrevState';
 const useBarChartDataset = (dataset: Dataset[]) => {
   const [isMount, setIsMount] = useState(false);
   const cumulativeDataset = makeCumulativeDataset(dataset);
-  const defaultDataset = makeDefaultCumulativeDataset(cumulativeDataset);
+  const defaultDataset = makeCumulativeDataset(makeDefaultDataset(dataset));
   const prevDataset = usePrevState<CumulativeDataset[]>(cumulativeDataset);
 
-  function makeDefaultCumulativeDataset(cumulativeDataset: CumulativeDataset[]): CumulativeDataset[] {
-    return cumulativeDataset.map((data) => ({ ...data, cumulativeSum: 1 }));
+  function makeDefaultDataset(dataset: Dataset[]): Dataset[] {
+    return dataset.map((data) => ({ ...data, value: 1 }));
   }
 
   function makeCumulativeDataset(dataset: Dataset[]): CumulativeDataset[] {
