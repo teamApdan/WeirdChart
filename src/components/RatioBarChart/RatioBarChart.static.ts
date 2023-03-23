@@ -1,7 +1,7 @@
-import { BarConfig } from './RatioBarChart.types';
+import { RatioBarConfig } from './RatioBarChart.types';
 import { easeInOut } from '../../utils/animation';
 
-export const defaultBarConfig: BarConfig = {
+export const defaultBarConfig: RatioBarConfig = {
   offsetX: 0,
   offsetY: 0,
   barHeight: 30,
