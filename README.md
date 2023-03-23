@@ -17,9 +17,9 @@ pnpm add @teamapdan/weirdchart
 Then, import and use individual components:
 
 ```tsx
-import {BarChart} from '@teamapdan/weirdchart';
+import {RatioBarChart} from '@teamapdan/weirdchart';
 
-<BarChart dataset={...} />
+<RatioBarChart dataset={...} />
 ```
 
 <br>
@@ -29,7 +29,7 @@ import {BarChart} from '@teamapdan/weirdchart';
 All component's width and height are 100% of parent element. So if you want to set width and height, you should set parent element's width and height. Or you can set with canvas props like this.
 
 ```tsx
-<BarChart
+<RatioBarChart
   dataset={...}
   width={300}
   height={300}
@@ -38,18 +38,18 @@ All component's width and height are 100% of parent element. So if you want to s
 
 <br>
 
-## BarChart
+## RatioBarChart
 
 ### Useage
 
 ```tsx
 import React from 'react';
-import { BarChart } from '@teamapdan/weirdchart';
+import { RatioBarChart } from '@teamapdan/weirdchart';
 
 function App() {
   return (
     <div className="App" style={{ width: '300px' }}>
-      <BarChart
+      <RatioBarChart
         dataset={[...]}
         option={...}
         {...props}
@@ -98,12 +98,12 @@ Also supports all standard `<canvas>` props.
 
 # Example
 
-## BarChart
+## RatioBarChart
 
 - use Theme
 
 ```tsx
-<BarChart
+<RatioBarChart
   dataset={[
     { name: 'A', value: 10 },
     { name: 'B', value: 0, color: '#ff0000' }, // you can set custom color for each bar
@@ -120,7 +120,7 @@ Also supports all standard `<canvas>` props.
 - use custom color
 
 ```tsx
-<BarChart
+<RatioBarChart
   dataset={[
     { name: 'A', value: 10 },
     { name: 'B', value: 0 },
@@ -134,7 +134,7 @@ Also supports all standard `<canvas>` props.
 - set startAnimation
 
 ```tsx
-<BarChart
+<RatioBarChart
   dataset={[
 	{ name: 'A', value: 10 },
 	{ name: 'B', value: 0 },
