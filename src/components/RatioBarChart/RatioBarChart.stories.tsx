@@ -1,13 +1,13 @@
 import React from 'react';
 import { ComponentStory, ComponentMeta } from '@storybook/react';
-import BarChart from './BarChart';
+import RatioBarChart from './RatioBarChart';
 
 export default {
-  title: 'ReactComponentLibrary/BarChart',
-  component: BarChart,
-} as ComponentMeta<typeof BarChart>;
+  title: 'ReactComponentLibrary/RatioBarChart',
+  component: RatioBarChart,
+} as ComponentMeta<typeof RatioBarChart>;
 
-const Template: ComponentStory<typeof BarChart> = (args) => <BarChart {...args} />;
+const Template: ComponentStory<typeof RatioBarChart> = (args) => <RatioBarChart {...args} />;
 
 export const NormalSpeed = Template.bind({});
 NormalSpeed.args = {

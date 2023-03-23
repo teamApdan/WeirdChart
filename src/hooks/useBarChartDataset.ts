@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Dataset, CumulativeDataset, Position } from '../components/BarChart/BarChart.types';
+import { Dataset, CumulativeDataset, Position } from '../components/RatioBarChart/RatioBarChart.types';
 import usePrevState from './usePrevState';
 
 const useBarChartDataset = (dataset: Dataset[]) => {

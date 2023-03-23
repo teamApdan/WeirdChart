@@ -1,4 +1,4 @@
-import { BarConfig } from './BarChart.types';
+import { BarConfig } from './RatioBarChart.types';
 import { easeInOut } from '../../utils/animation';
 
 export const defaultBarConfig: BarConfig = {

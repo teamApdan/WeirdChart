@@ -10,7 +10,7 @@ export type CumulativeDataset = Dataset & {
   position: Position;
 };
 
-export type Bar = {
+export type RatioBar = {
   color: string;
   x: number;
   y: number;
@@ -81,6 +81,6 @@ export type Option = {
 };
 
 // unwrap optional type
-export type BarConfig = {
+export type RatioBarConfig = {
   [K in keyof Option]-?: Option[K];
 };
