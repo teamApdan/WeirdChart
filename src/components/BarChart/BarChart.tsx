@@ -16,9 +16,9 @@ export type BarChartProps = {
    */
   colors?: string[] | Theme;
   option?: Option;
-};
+} & React.CanvasHTMLAttributes<HTMLCanvasElement>;
 
-const BarChart = ({ dataset, colors, option }: BarChartProps) => {
+const BarChart = ({ dataset, colors, option, ...rest }: BarChartProps) => {
   const { isMount, cumulativeDataset, defaultDataset, prevDataset, mount } = useBarChartDataset(dataset);
   const barColors = new Color(colors);
 
@@ -42,12 +42,13 @@ const BarChart = ({ dataset, colors, option }: BarChartProps) => {
   }
 
   return (
-    <div className='barchart' style={{ position: 'relative' }}>
+    <div className='barchart'>
       <Canvas
+        className='barchart__canvas'
         draw={(ctx, frameCount) => {
           draw(ctx, frameCount, cumulativeDataset, defaultDataset, prevDataset, barColors, isMount, mount, option);
         }}
-        style={{ width: '100%', height: '100%', position: 'absolute' }}
+        {...rest}
       />
     </div>
   );
