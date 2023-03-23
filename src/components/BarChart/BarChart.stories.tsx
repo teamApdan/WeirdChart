@@ -45,5 +45,6 @@ HalfSpeed.args = {
   ],
   option: {
     animationSpeed: 0.7,
+    startAnimation: 'fromEqual',
   },
 };
