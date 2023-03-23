@@ -155,10 +155,14 @@ Also supports all standard `<canvas>` props.
 />
 ```
 
+# Contact
+
+To contact the maintainers, please open an issue.
+
+# Contributing
+
+Contributions are welcome! Please read the [contributing guidelines](CONTRIBUTING.md) first.
+
 # License
 
-MIT Licensed Copyright (c) 2020 Jeremy Ayerst
-
-```
-
-```
+This project is licensed under the terms of the MIT license.
