@@ -46,9 +46,9 @@ const RatioBarChart = ({ dataset, colors, option, grouping, ...rest }: BarChartP
   }
 
   return (
-    <div className='barchart'>
+    <div className='ratiobarchart'>
       <Canvas
-        className='barchart__canvas'
+        className='ratiobarchart__canvas'
         draw={(ctx, frameCount) => {
           draw(ctx, frameCount, cumulativeDataset, defaultDataset, prevDataset, barColors, isMount, mount, option);
         }}
