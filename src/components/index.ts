@@ -1,4 +1,5 @@
-import BarChart from './RatioBarChart';
+import RatioBarChart from './RatioBarChart';
 import Canvas from './Canvas';
 
-export { BarChart, Canvas };
+export * from './RatioBarChart/RatioBarChart.types';
+export { RatioBarChart, Canvas };
