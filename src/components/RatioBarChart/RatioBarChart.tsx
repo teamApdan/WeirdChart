@@ -15,10 +15,14 @@ export type BarChartProps = {
    * @default 'pastel'
    */
   colors?: string[] | Theme;
+  grouping?: boolean;
   option?: Option;
 } & React.CanvasHTMLAttributes<HTMLCanvasElement>;
 
-const RatioBarChart = ({ dataset, colors, option, ...rest }: BarChartProps) => {
+const RatioBarChart = ({ dataset, colors, option, grouping, ...rest }: BarChartProps) => {
+  if (grouping) {
+    dataset = groupingByLabel(dataset);
+  }
   const { isMount, cumulativeDataset, defaultDataset, prevDataset, mount } = useBarChartDataset(dataset);
   const barColors = new Color(colors);
 
@@ -55,6 +59,19 @@ const RatioBarChart = ({ dataset, colors, option, ...rest }: BarChartProps) => {
 };
 
 export default RatioBarChart;
+
+function groupingByLabel(datasets: Dataset[]): Dataset[] {
+  const groupedDataset = datasets.reduce((acc, obj) => {
+    const { label, value } = obj;
+    if (acc[label]) {
+      acc[label] += value;
+    } else {
+      acc[label] = value;
+    }
+    return acc;
+  }, {} as Record<string, number>);
+  return Object.keys(groupedDataset).map((label) => ({ label, value: groupedDataset[label] }));
+}
 
 function makeBarOffsetX(position: Position) {
   return position === 'FIRST' ? 0 : 1;

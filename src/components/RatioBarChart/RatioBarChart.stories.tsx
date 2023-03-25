@@ -48,3 +48,17 @@ HalfSpeed.args = {
     startAnimation: 'fromEqual',
   },
 };
+
+export const Grouping = Template.bind({});
+Grouping.args = {
+  dataset: [
+    { label: 'good', value: 10 },
+    { label: 'bad', value: 10 },
+    { label: 'bad', value: 10 },
+  ],
+  grouping: true,
+  colors: 'pastel',
+  option: {
+    startAnimation: 'fromEqual',
+  },
+};
